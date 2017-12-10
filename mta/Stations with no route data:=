@@ -1,0 +1,118 @@
+Stations with no route data:
+Found 8 of them:
+
+{ stop_id: '140',
+  stop_code: '',
+  stop_name: 'South Ferry Loop',
+  stop_desc: '',
+  stop_lat: '40.701411',
+  stop_lon: '-74.013205',
+  zone_id: '',
+  stop_url: '',
+  location_type: '1',
+  parent_station: '',
+  entrances: [] }
+
+
+// D13 is duplicated with A12N
+{ stop_id: 'D13',
+  stop_code: '',
+  stop_name: '145 St',
+  stop_desc: '',
+  stop_lat: '40.824783',
+  stop_lon: '-73.944216',
+  zone_id: '',
+  stop_url: '',
+  location_type: '1',
+  parent_station: '',
+  entrances:
+   [ { latitude: '40.823791', longitude: '-73.944726', corner: 'SE' },
+     { latitude: '40.823915', longitude: '-73.945027', corner: 'SW' },
+     { latitude: '40.824244', longitude: '-73.944931', corner: 'NW' },
+     { latitude: '40.824028', longitude: '-73.944409', corner: 'NE' },
+     { latitude: '40.825622', longitude: '-73.943796', corner: 'NW' },
+     { latitude: '40.825581', longitude: '-73.943444', corner: 'NE' } ] }
+
+{ stop_id: 'D20',
+  stop_code: '',
+  stop_name: 'W 4 St',
+  stop_desc: '',
+  stop_lat: '40.732338',
+  stop_lon: '-74.000495',
+  zone_id: '',
+  stop_url: '',
+  location_type: '1',
+  parent_station: '',
+  entrances:
+   [ { latitude: '40.731086',
+       longitude: '-74.001209',
+       corner: undefined },
+     { latitude: '40.731133', longitude: '-74.001534', corner: 'NW' },
+     { latitude: '40.731091', longitude: '-74.001127', corner: 'NE' },
+     { latitude: '40.733067', longitude: '-73.999728', corner: 'NE' },
+     { latitude: '40.733259', longitude: '-73.999615', corner: 'NE' },
+     { latitude: '40.733072', longitude: '-74.000192', corner: 'NW' } ] }
+
+{ stop_id: 'H19',
+  stop_code: '',
+  stop_name: 'Broad Channel',
+  stop_desc: '',
+  stop_lat: '40.609014',
+  stop_lon: '-73.816024',
+  zone_id: '',
+  stop_url: '',
+  location_type: '1',
+  parent_station: '',
+  entrances: [] }
+
+{ stop_id: 'N12',
+  stop_code: '',
+  stop_name: 'S.B. Coney Island',
+  stop_desc: '',
+  stop_lat: '40.577422',
+  stop_lon: '-73.981233',
+  zone_id: '',
+  stop_url: '',
+  location_type: '1',
+  parent_station: '',
+  entrances:
+   [ { latitude: '40.576241', longitude: '-73.981077', corner: 'NE' },
+     { latitude: '40.576900', longitude: '-73.980846', corner: 'SE' } ] }
+
+{ stop_id: 'R09',
+  stop_code: '',
+  stop_name: 'Queensboro Plaza',
+  stop_desc: '',
+  stop_lat: '40.750582',
+  stop_lon: '-73.940202',
+  zone_id: '',
+  stop_url: '',
+  location_type: '1',
+  parent_station: '',
+  entrances:
+   [ { latitude: '40.750835', longitude: '-73.939671', corner: 'NW' },
+     { latitude: '40.750302', longitude: '-73.940245', corner: 'SW' } ] }
+
+{ stop_id: 'S10',
+  stop_code: '',
+  stop_name: 'Atlantic',
+  stop_desc: '',
+  stop_lat: '40.515401',
+  stop_lon: '-74.245689',
+  zone_id: '',
+  stop_url: '',
+  location_type: '1',
+  parent_station: '',
+  entrances: [] }
+
+{ stop_id: 'S12',
+  stop_code: '',
+  stop_name: 'Nassau',
+  stop_desc: '',
+  stop_lat: '40.517812',
+  stop_lon: '-74.238373',
+  zone_id: '',
+  stop_url: '',
+  location_type: '1',
+  parent_station: '',
+  entrances: [] }

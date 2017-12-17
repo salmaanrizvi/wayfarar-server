@@ -1,8 +1,8 @@
 const fs = require('fs');
 const asyncLib = require('async');
 const config = require('./config.js');
-const oldFilepath = __dirname + '/google-transit/stops.txt';
-const newFilepath = __dirname + '/mta/stops.txt';
+const googleTransitStops = __dirname + '/google-transit/stops.txt';
+const mtaStopsFilePath = __dirname + '/mta/stops.txt';
 const stationEntranceData = require('./google-transit/station-entrance-exit.json');
 
 const missingStations = ['D03', 'D01', 'D03', 'D01', 'D05', 'D04','D03','D01','D09','D08','D07','D06','D05','D04','D03','D01','A24','A15','D13'];
@@ -10,22 +10,30 @@ const missingStations = ['D03', 'D01', 'D03', 'D01', 'D05', 'D04','D03','D01','D
 const buildStations = function() {
   const stations = {};
 
-  const data = fs.readFileSync(newFilepath, 'utf8');
+  const data = fs.readFileSync(mtaStopsFilePath, 'utf8');
   const parsed = data.split('\n');
   const stationDataKeys = parsed.splice(0, 1)[0].split(',');
 
   parsed.forEach(stationString => {
     const stationArrData = stationString.split(',');
-    const station = { trains: { N: [], S: [] } };
+    const station = {
+      location: { coordinates: [] }, // coordinates are long, lat
+      trains: { N: [], S: [] }
+    };
 
     stationArrData.forEach((data, idx) => {
       const key = stationDataKeys[idx].replace('\r', '');
 
-      if (key === 'daytime_routes') station[key] = data.split(' ');
-      else if (['stop_lat', 'stop_lon'].indexOf(key) > -1) station[key] = parseFloat(data);
+      if (key === 'daytime_routes') {
+        station[key] = data.split(' ');
+      }
+      else if (['stop_lat', 'stop_lon'].indexOf(key) > -1) {
+        station[key] = parseFloat(data);
+      }
       else station[key] = data.replace('\r', '');
     });
 
+    station.location.coordinates = [station.stop_lon, station.stop_lat];
     stations[station.stop_id] = station;
   });
 
@@ -34,7 +42,7 @@ const buildStations = function() {
 }
 
 const addMissingStations = function(stations) {
-  const data = fs.readFileSync(oldFilepath, 'utf8');
+  const data = fs.readFileSync(googleTransitStops, 'utf8');
   const parsed = data.split('\n');
   const stationDataKeys = parsed.splice(0, 1)[0].split(',');
 

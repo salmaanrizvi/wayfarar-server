@@ -1,12 +1,14 @@
+const MongoClient = require('mongodb').MongoClient;
 const app = require('express')();
 const asyncLib = require('async');
-const mongoose = require('mongoose');
-const { Train, Station } = require('./models.js');
+const mongoose = require('mongoose').set('debug', true);
+const { Train, Station, createTextIndexes, save } = require('./models.js');
 const moment = require('moment');
 const { buildStations } = require('./stops.js');
 const GtfsRealtimeBindings = require('gtfs-realtime-bindings');
 const config = require('./config.js');
-const { urls, VehicleStopStatus, dateFormat } = require('./utils.js');
+const { urls } = require('./utils.js');
+const { parseUpdateForLine, findDocuments } = require('./trip.js');
 
 let stations = {};
 const trains = {};
@@ -15,108 +17,40 @@ const load = (line, parse = true, cb) => {
   line = line.toLowerCase();
   if (!line || !urls[line]) return cb(new Error(`${ line } is not a supported line.`));
   
+  config.debug('loading line', line);
+  
   config.mta.req('GET', { feed_id: urls[line] })
   .then(body => {
 
     let feed;
-    try {
-      feed = GtfsRealtimeBindings.FeedMessage.decode(body);
-    }
+    try { feed = GtfsRealtimeBindings.FeedMessage.decode(body); }
     catch (e) {
       config.error('error parsing MTA feed', e);
-      return cb(e);
+      return cb({ e, line });
     }
 
     if(!parse) return cb(null, feed);
 
-    const lineData = {};
-
-    feed.entity.forEach(entity => {
-      const { trip_update, vehicle } = entity;
-
-      if (vehicle) {
-        const {
-          trip: {
-            trip_id: tripId = '',
-            route_id: routeId = '',
-          } = {},
-          timestamp: { low: ts = 0 } = {},
-        } = vehicle;
-
-        if (routeId.toLowerCase() !== line) return;
-
-        const timestamp = ts ? moment.unix(ts).format(dateFormat) : ts;
-        const current_status = VehicleStopStatus[vehicle.current_status];
-        const data = {
-          current_status: current_status || VehicleStopStatus.STOPPED_AT,
-          timestamp,
-          current_stop_seq: vehicle.current_stop_sequence || 'null'
-        }
-
-        const tripData = tripId.split('..');
-        const direction = tripData[1];
-        const route = tripData[0].split('_')[1];
-
-        data.direction = direction;
-        data.route = route;
-
-        lineData[tripId] = Object.assign({}, lineData[tripId] || {}, data);
-      }
-      else if (trip_update) {
-        const {
-          stop_time_update: updates = [],
-          trip: {
-            trip_id: tripId,
-            route_id: routeId,
-          } = {}
-        } = trip_update;
-
-        if (routeId.toLowerCase() !== line) return;
-
-        const data = [];
-        updates.forEach(trainUpdate => {
-          const {
-            stop_id, 
-            arrival,
-            departure,
-          } = trainUpdate;
-
-          const arrivalLow = arrival && arrival.time && arrival.time.low || 'N/A';
-          const departureLow = departure && departure.time && departure.time.low || 'N/A';
-
-          let stopName = '';
-          const stop_id_no_dir = stop_id.slice(0, stop_id.length - 1);
-          const direction = stop_id.slice(stop_id.length - 1);
-
-          let arrivalTimeHuman = arrivalLow !== 'N/A' ? moment.unix(arrivalLow).format(dateFormat) : arrivalLow;
-          let departureTimeHuman = departureLow !== 'N/A' ? moment.unix(departureLow).format(dateFormat) : departureLow;
-
-          if (stations[stop_id_no_dir]) {
-            stopName = stations[stop_id_no_dir].stop_name;
-            const lastUpdated = moment().unix();
-            stations[stop_id_no_dir].lastUpdated = lastUpdated;
-            const trains = stations[stop_id_no_dir].trains;
-            if (!trains || !trains[direction]) config.debug('missing trains for dir', direction, stations[stop_id_no_dir]);
-            else if (trains[direction].indexOf(tripId) === -1) trains[direction].push(tripId);
-          }
-          else config.debug('didnt find stop id in stations data', stop_id);
-
-          const updateData = {
-            station_id: stop_id,
-            station_name: stopName,
-            arrivalTime: arrivalLow,
-            arrives: arrivalTimeHuman,
-            departs: departureLow,
-          };
-          data.push(updateData);
-        });
-
-        lineData[tripId] = Object.assign({}, lineData[tripId] || {}, { stops: data });
-      }
-    });
-
+    const lineData = parseUpdateForLine(feed.entity, line, stations);
     trains[line] = lineData;
+
+    const records = Object.keys(lineData).map(train_id => lineData[train_id]);
+    return save(records, Train, 'train_id')
+  })
+  // .then(response => {
+  //   const { ok, nInserted, nUpserted, nMatched, nModified, nRemoved } = response;
+  //   config.debug('line save - ok', ok, 'nInserted', nInserted, 'nUpserted', nUpserted, 'nMatched', nMatched, 'nModified', nModified,'nRemoved', nRemoved);
+  //   const stationRecords = Object.keys(stations).map(stop_id => stations[stop_id]);
+  //   return save(stationRecords, Station, 'stop_id');
+  // })
+  .then(response => {
+    const { ok, nInserted, nUpserted, nMatched, nModified, nRemoved } = response;
+    config.debug('line save - ok', ok, 'nInserted', nInserted, 'nUpserted', nUpserted, 'nMatched', nMatched, 'nModified', nModified,'nRemoved', nRemoved);
     return cb(null, trains[line]);
+  })
+  .catch(error => {
+    config.debug(error);
+    return cb(error);
   });
 }
 
@@ -124,35 +58,56 @@ app.get('/favicon.ico', function(req, res) {
   res.status(204);
 });
 
-app.get('/stations/:station_id?', (req, res) => {
-  const station_id = req.params.station_id;
+// /location?long=(required)&lat(required)=&maxDistance=(optional)
+app.get('/location', function(req, res) {
+  let { lat, long, maxDistance } = req.query;
+
+  if (!long || !lat) return res.status(400).send('Longitude and Latitude required.');
+
+  long = parseFloat(long);
+  lat = parseFloat(lat);
+
+  if (isNaN(long) || isNaN(lat)) return res.status(400).send('Invalid longitude and latitude supplied');
+
+  maxDistance = parseFloat(maxDistance);
+  maxDistance = !isNaN(maxDistance) ? maxDistance : 1609; // default is 1.0 miles;
+
+  const coordinates = [long, lat];
+  config.debug('searching for coordinates', coordinates);
+  config.debug('max distance', maxDistance);
+
+  const data = { stations: [], trains: [] };
+
+  findDocuments({ coordinates, maxDistance })
+  .then(nearby => {
+    data.stations = nearby;
+    const train_ids = nearby.reduce((ids, station) => ids.concat(station.trains.N, station.trains.S), []);
+    console.log('train ids', train_ids);
+    return Train.find({ train_id: { $in: train_ids }}).sort('-lastUpdated direction').exec();
+  })
+  .then(trains => {
+    data.trains = trains;
+    return res.set({ 'Content-Type': 'application/json; charset=utf-8' }).status(200).send(JSON.stringify(data, null, 2));
+  })
+  .catch(err => res.status(500).send('Error querying db'));
+});
+
+app.get('/stations', (req, res) => {
   res.set({ 'Content-Type': 'application/json; charset=utf-8' }).status(200);
 
-  if (!station_id || !stations[station_id]) {
-    return res.status(200).send(`Station Count: ${ Object.keys(stations).length } \n` + JSON.stringify(stations, null, 2));
-  }
-  else {
-    const { daytime_routes, lastUpdated } = stations[station_id];
-    const reqTime = moment().unix();
+  const { stop_id, stop_name } = req.query;
+  if (!stop_id && !stop_name) return res.send(`Station Count: ${ Object.keys(stations).length }\n` + JSON.stringify(stations, null, 2));
 
-    if (!lastUpdated || reqTime - lastUpdated > 60) {
-      const lineTask = line => asyncLib.reflect(callback => {
-        config.debug('loading line', line);
-        load(line, true, callback);
-      });
-      const lineTasks = daytime_routes.map(line => lineTask(line));
+  let search = {};
+  if (stop_id) search.stop_id = stop_id;
+  if (stop_name) search = Object.assign(search, { $text: { $search: stop_name } });
 
-      asyncLib.parallel(lineTasks, (err, responses) => {
-        const errs = responses.filter(response => {
-          if (response instanceof Error) return response.message;
-          return false;
-        });
-        const resp = `${ errs.length ? errs : '' }\n` + JSON.stringify(stations[station_id], null, 2);
-        return res.status(200).send(resp);
-      });
-    }
-    else return res.status(200).send(JSON.stringify(stations[station_id], null, 2));
-  }
+  config.debug(search);
+
+  config.db.stations.find(search).toArray((err, response) => {
+    config.debug(err, response.length);
+    return res.send(JSON.stringify(response, null, 2));
+  });
 });
 
 app.get('/lines/:line', (req, res) => {
@@ -187,38 +142,66 @@ app.get('/rawdata/:line', (req, res) => {
   });
 });
 
-mongoose.connect(config.db.url, { useMongoClient: true })
-// .then(() => {
-  // Station.remove({}).exec((err, results) => config.debug(err, results.result.n))
-  // Station.find({}).exec((err, results) => {
-  //   config.debug(results.length);
-  // });
-// })
-// .then(buildStations)
-// .then((updatedStations) => {
-.then(() => {
-  Station.find({}).exec((err, results) => {
-    if (err) return config.error(error);
-    results.forEach(result => stations[result.stop_id] = result);
+const saveStations = () => {
+  const stationRecords = Object.keys(stations).map(stop_id => stations[stop_id]);
+  return save(stationRecords, Station, 'stop_id');
+}
+
+const pollTrains = () => {
+
+  config.db.stations.find({}).toArray((e, stationData) => {
+    if (e) return;
+    const stop_id = stationData[20].stop_id;
+    config.debug('before poll start -', stop_id, stationData[0].trains);
+    stations = stationData.reduce((data, station) => {
+      const emptyTrains = { trains: { S: [], N: [] } };
+      const cleanStation = Object.assign({}, station, emptyTrains);
+      return Object.assign(data, { [station.stop_id]: cleanStation });
+    }, {});
+
+    const lineTask = line => asyncLib.reflect(callback => load(line, true, callback));
+    const pollingTasks = Object.keys(urls).map(line => lineTask(line));
+
+    config.debug('on poll start -', stop_id, stations[stop_id].trains);
+
+    config.profile('polling');
+    asyncLib.parallel(pollingTasks, (err, results) => {
+      saveStations().then(response => {
+        const { ok, nInserted, nUpserted, nMatched, nModified, nRemoved } = response;
+        config.profile('polling');
+        config.debug('station save - ok', ok, 'nInserted', nInserted, 'nUpserted', nUpserted, 'nMatched', nMatched, 'nModified', nModified,'nRemoved', nRemoved);
+        config.debug('Finished polling all subway lines with', err, 'errors and', results.length, 'successful polls');
+        config.debug('On poll finish - ', stop_id, stations[stop_id]);
+      });
+    });
   });
+};
 
+const hoursToSeconds = hrs => 60 * 60 * hrs;
+const hoursToMs = hrs => 60 * 60 * hrs * 1000;
 
+const pollForTrains = freq => setInterval(pollTrains, freq);
+const pollToClearTrains = freq => setInterval(clearOldTrains, freq);
 
-  // Station.remove({}).exec((err, results) => {
-  //   config.debug(err, results.result.n);
-  //   const stops = Object.keys(stations).map(stop_id => new Station(stations[stop_id]));
-  //   Station.insertMany(stops).then(result => config.debug('result of inserting stations', result));
-  // });
+const clearOldTrains = () => {
+  Train.remove({}).where('lastUpdated').lt(moment().unix() - hoursToSeconds(5)).exec((err, trains) => {
+    if (err) return config.error(err);
+    return config.debug('removed train ids', trains.result.n);
+  });
+}
 
-  // Station.find({ stop_id: '101' }).exec((err, results) => {
-  //   config.debug('err', err);
-  //   config.debug('found stations with stop_id', results);
-  // });
-  // const Station = mongoose.model('Station', stationSchema);
+config.profile('mongodb');
+mongoose.connect(config.db.url, { useMongoClient: true })
+.then(db => {
+  config.profile('mongodb');
 
-  // const vanCortlandtPark = new Station(stations['101']);
-  // vanCortlandtPark.save(() => config.debug('sucess saving', vanCortlandtPark));
+  config.db.stations = db.collections.stations;
+  config.db.trains = db.collections.trains;
 
-  app.listen(8888, () => config.debug('Listening on 8888'))
-})
-.catch(err => config.error('Error connecting to mongo', err));
+  app.listen(8888, () => { 
+    config.debug('Listening on 8888');
+    pollTrains();
+    // pollForTrains(60000);
+//     pollToClearTrains(hoursToMs(2)); // two hours
+  });
+});

@@ -1,4 +1,5 @@
 const rp = require('request-promise');
+const moment = require('moment');
 const config = {};
 
 config.env = process.env.NODE_ENV || 'development';
@@ -30,9 +31,22 @@ config.db = {
 };
 
 config.debug = (...args) => {
-  if (config.env === 'development') console.log(...args);
+  if (config.env === 'development') console.log('[*debug*]', ...args);
 };
 
 config.error = (...args) => console.error(...args);
+
+config.profiles = {};
+
+config.profile = id => {
+  if (config.profiles[id]) {
+    const time = moment() - config.profiles[id];
+    config.debug(id, 'in', time, 'ms');
+    delete config.profiles[id];
+  }
+  else {
+    config.profiles[id] = moment();
+  }
+}
 
 module.exports = config;

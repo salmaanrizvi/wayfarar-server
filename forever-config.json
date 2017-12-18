@@ -1,0 +1,13 @@
+{
+    // Comments are supported
+    "uid": "WayfarAR",
+    "append": true,
+    "watch": true,
+    "script": "src/index.js",
+    "sourceDir": "/home/Rizvi/wayfarar-server",
+    "logfile": "logs.log",
+    "outfile": "outfile.log",
+    "errfile": "errfile.log",
+    "minUptime": 2000,
+    "spinSleepTime": 5000
+}

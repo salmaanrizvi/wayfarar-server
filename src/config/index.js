@@ -1,8 +1,16 @@
 const rp = require('request-promise');
+const mongoose = require('mongoose');
 const moment = require('moment');
-const config = {};
+const colors = require('colors');
+const dateFormat = 'MMM Do, k:mm:ss'
 
-config.env = process.env.NODE_ENV || 'development';
+const config = {
+  DEV: 'development',
+  PROD: 'production'
+};
+
+config.env = process.env.NODE_ENV || config.DEV;
+config.port = process.env.PORT || 8888;
 
 config.req = (options) => (method = 'GET', params) => {
   options.qs = Object.assign({}, options.qs || {}, params);
@@ -31,7 +39,10 @@ config.db = {
 };
 
 config.debug = (...args) => {
-  if (config.env === 'development') console.log('[*debug*]', ...args);
+  if (config.env === config.DEV) {
+    const now = moment().format(dateFormat);
+    console.log(`[${ now }]`.red, ...args);
+  }
 };
 
 config.error = (...args) => console.error(...args);
@@ -48,5 +59,21 @@ config.profile = id => {
     config.profiles[id] = moment();
   }
 }
+
+config.saveDb = db => {
+  config.profile('mongodb');
+  config.db.stations = db.collections.stations;
+  config.db.trains = db.collections.trains;
+
+  // return createTextIndexes(config.db.trains)
+    // .then(() => create2dSphereIndex(config.db.stations));
+};
+
+config.connect = () => {
+  if (config.env === config.DEV) mongoose.set('debug', true);
+  config.profile('mongodb');
+  return mongoose.connect(config.db.url, { useMongoClient: true })
+    .then(config.saveDb);
+};
 
 module.exports = config;

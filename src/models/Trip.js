@@ -1,8 +1,14 @@
+const config = require(__basedir + '/config');
 const moment = require('moment');
-const { VehicleStopStatus, dateFormat } = require('./utils.js');
-const config = require('./config.js');
+const { VehicleStopStatus, dateFormat } = require(__basedir + '/utils.js');
+const GtfsRealtimeBindings = require('gtfs-realtime-bindings');
+const { urls } = require(__basedir + '/utils.js');
 
-const parseVehicle = (vehicle, line) => {
+const { Train } = require(__basedir + '/models');
+
+const trip = {};
+
+trip.parseVehicle = (vehicle, line) => {
   const {
     trip: {
       trip_id: tripId = '',
@@ -34,7 +40,7 @@ const parseVehicle = (vehicle, line) => {
   return { data, tripId };
 };
 
-const parseTripUpdate = (update, line, stations) => {
+trip.parseTripUpdate = (update, line, stations) => {
   const {
     stop_time_update: updates = [],
     trip: {
@@ -56,14 +62,12 @@ const parseTripUpdate = (update, line, stations) => {
     } = trainUpdate;
 
     const arrivalLow = arrival && arrival.time && arrival.time.low || 0;
-    // const departureLow = departure && departure.time && departure.time.low || 'N/A';
 
     let stopName = '';
     const stop_id_no_dir = stop_id.slice(0, stop_id.length - 1);
     const direction = stop_id.slice(stop_id.length - 1);
 
     let arrivalTimeHuman = arrivalLow !== 0 ? moment.unix(arrivalLow).format(dateFormat) : arrivalLow;
-    // let departureTimeHuman = departureLow !== 'N/A' ? moment.unix(departureLow).format(dateFormat) : departureLow;
 
     if (stations[stop_id_no_dir]) {
       const { stop_name, trains, stop_id: stId } = stations[stop_id_no_dir];
@@ -80,7 +84,7 @@ const parseTripUpdate = (update, line, stations) => {
         }
       }
     }
-    else config.debug('didnt find stop id in stations data', stop_id);
+    else config.error('Didn\'t find', stop_id, 'in stations data');
 
     const updateData = {
       station_id: stop_id,
@@ -94,18 +98,18 @@ const parseTripUpdate = (update, line, stations) => {
   return { data, tripId, lastUpdated };
 };
 
-const parseUpdateForLine = (entities, line, stations) => {
+trip.parseUpdateForLine = (entities, line, stations) => {
   const lineUpdate = entities.reduce((lineData, entity) => {
     const { trip_update: update, vehicle } = entity;
     if (vehicle) {
-      const response = parseVehicle(vehicle, line);
+      const response = trip.parseVehicle(vehicle, line);
       if (response) {
         const { data, tripId } = response;
         lineData[tripId] = Object.assign({}, lineData[tripId] || {}, data);
       }
     }
     else if (update) {
-      const response = parseTripUpdate(update, line, stations);
+      const response = trip.parseTripUpdate(update, line, stations);
       if (response) {
         const { data, tripId, lastUpdated } = response;
         lineData[tripId] = Object.assign({}, lineData[tripId] || {}, { lastUpdated, stops: data });
@@ -117,27 +121,41 @@ const parseUpdateForLine = (entities, line, stations) => {
   return lineUpdate;
 };
 
-// default distance of ~1.5 mi
-const findDocuments = ({ coordinates, maxDistance = 2414 }) => {
-  return new Promise(resolve => {
-    // Find some documents
-    const near = {
-      'location.coordinates': { 
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: coordinates
-          },
-          $maxDistance: maxDistance
-        }
+trip.load = ({ line, stations, trains, parse = true }, cb) => {
+  line = line.toLowerCase();
+  if (!line || !urls[line]) {
+    return cb(new Error(`${ line } is not a supported line.`));
+  }
+  
+  config.debug('Loading line', line);
+  
+  config.mta.req('GET', { feed_id: urls[line] })
+    .then(body => {
+
+      let feed;
+      try { feed = GtfsRealtimeBindings.FeedMessage.decode(body); }
+      catch (e) {
+        config.error('Error parsing MTA feed', e);
+        return cb({ e, line });
       }
-    };
 
-    config.db.stations.find(near).toArray((err, stations) => {
-      config.debug("Found the following records", stations.length);
-      resolve(stations);
+      if(!parse) return cb(null, feed);
+
+      const lineData = trip.parseUpdateForLine(feed.entity, line, stations);
+      trains[line] = lineData;
+
+      const records = Object.keys(lineData).map(train_id => lineData[train_id]);
+      return Train.bulkSave(records, 'train_id')
+    })
+    .then(response => {
+      const { ok, nInserted, nUpserted, nMatched, nModified, nRemoved } = response;
+      config.debug('line save - ok', ok, 'nInserted', nInserted, 'nUpserted', nUpserted, 'nMatched', nMatched, 'nModified', nModified,'nRemoved', nRemoved);
+      return cb(null, trains[line]);
+    })
+    .catch(error => {
+      config.error(error);
+      return cb(error);
     });
-  });
-};
+}
 
-module.exports = { parseUpdateForLine, findDocuments };
+module.exports = trip;

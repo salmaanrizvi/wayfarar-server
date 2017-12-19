@@ -121,15 +121,13 @@ trip.load = ({ line, stations, trains, parse = true }, cb) => {
     return cb(new Error(`${ line } is not a supported line.`));
   }
   
-  config.debug('Loading line', line);
-  
   config.mta.req('GET', { feed_id: urls[line] })
   .then(body => {
 
     let feed;
     try { feed = GtfsRealtimeBindings.FeedMessage.decode(body); }
     catch (e) {
-      config.error('Error parsing MTA feed', e);
+      config.error('Error parsing MTA feed for line', line, e);
       return cb({ e, line });
     }
 
@@ -137,14 +135,7 @@ trip.load = ({ line, stations, trains, parse = true }, cb) => {
 
     const lineData = trip.parseUpdateForLine(feed.entity, line, stations);
     trains[line] = lineData;
-
-    const records = Object.keys(lineData).map(train_id => lineData[train_id]);
-    return Train.bulkSave(records, 'train_id')
-  })
-  .then(response => {
-    const { ok, nInserted, nUpserted, nMatched, nModified, nRemoved } = response;
-    config.debug('line save - ok', ok, 'nInserted', nInserted, 'nUpserted', nUpserted, 'nMatched', nMatched, 'nModified', nModified,'nRemoved', nRemoved);
-    return cb(null, trains[line]);
+    return cb(null, trains);
   })
   .catch(error => {
     config.error(error);

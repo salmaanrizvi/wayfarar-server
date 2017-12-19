@@ -24,10 +24,10 @@ const TrainSchema = new Schema({
 },
 { timestamps: true });
 
-TrainSchema.statics.removeOldTrains = function() {
+const removeOldTrains = function() {
   return new Promise((resolve, reject) => {
-    const twoHoursAgo = moment().unix() - hoursToSeconds(5);
-    this.remove({}).where('lastUpdated').lt(twoHoursAgo).exec((err, response) => {
+    const fourHoursAgo = moment().unix() - hoursToSeconds(4);
+    config.db.trains.remove({ lastUpdated: { $lt: fourHoursAgo }}, (err, response) => {
       if (err) {
         config.error('Error removing old trains', err);
         return reject(err);
@@ -38,4 +38,5 @@ TrainSchema.statics.removeOldTrains = function() {
   });
 };
 
+TrainSchema.statics = Object.assign({}, TrainSchema.statics, { removeOldTrains });
 module.exports = TrainSchema;

@@ -40,7 +40,6 @@ StationSchema.statics.saveAll = function(stations) {
   return this.bulkSave(stationRecords, 'stop_id').then(response => {
     const { ok, nInserted, nUpserted, nMatched, nModified, nRemoved } = response;
     config.debug('Station save - ok', ok, 'nInserted', nInserted, 'nUpserted', nUpserted, 'nMatched', nMatched, 'nModified', nModified,'nRemoved', nRemoved);
-    config.debug('Finished polling all subway lines with', err, 'errors and', results.length, 'successful polls');
   });
 };
 

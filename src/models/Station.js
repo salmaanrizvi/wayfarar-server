@@ -16,7 +16,10 @@ const StationSchema = new Schema({
   complex_id: String,
   division: String,
   line: String,
-  stop_name: String,
+  stop_name: {
+    type: String,
+    index: true
+  },
   borough: String,
   daytime_routes: [String],
   structure: String,
@@ -34,6 +37,8 @@ const StationSchema = new Schema({
   lastUpdated: Number
 },
 { timestamps: true });
+
+StationSchema.index({ "$**": 'text' });
 
 StationSchema.statics.saveAll = function(stations) {
   const stationRecords = Object.keys(stations).map(stop_id => stations[stop_id]);

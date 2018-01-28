@@ -1,10 +1,11 @@
 const config = require(__basedir + '/config');
-const moment = require('moment');
+const moment = require('moment-timezone');
 const { VehicleStopStatus, dateFormat } = require(__basedir + '/utils.js');
 const GtfsRealtimeBindings = require('gtfs-realtime-bindings');
 const { urls } = require(__basedir + '/utils.js');
-
 const { Train } = require(__basedir + '/models');
+
+const timezone = 'America/New_York';
 
 const trip = {};
 
@@ -19,7 +20,7 @@ trip.parseVehicle = (vehicle, line) => {
 
   if (routeId.toLowerCase() !== line) return null;
 
-  const timestamp = ts ? moment.unix(ts).format(dateFormat) : ts;
+  const timestamp = ts ? moment.unix(ts).tz(timezone).format(dateFormat) : ts;
   const current_status = VehicleStopStatus[vehicle.current_status];
   const data = {
     current_status: current_status || VehicleStopStatus.STOPPED_AT,
@@ -40,7 +41,7 @@ trip.parseVehicle = (vehicle, line) => {
   return { data, tripId };
 };
 
-trip.parseTripUpdate = (update, line, stations) => {
+trip.parseTripUpdate = (update, line, stations, missingStations) => {
   const {
     stop_time_update: updates = [],
     trip: {
@@ -78,7 +79,7 @@ trip.parseTripUpdate = (update, line, stations) => {
         trains[direction].push(tripId);
       }
     }
-    else config.error('Didn\'t find', stop_id, 'in stations data');
+    else missingStations.add(stop_id);
 
     const updateData = {
       station_id: stop_id,
@@ -86,6 +87,7 @@ trip.parseTripUpdate = (update, line, stations) => {
       arrivalTime: arrivalLow,
       arrives: arrivalTimeHuman,
     };
+
     data.push(updateData);
   });
 
@@ -93,6 +95,8 @@ trip.parseTripUpdate = (update, line, stations) => {
 };
 
 trip.parseUpdateForLine = (entities, line, stations) => {
+  const missingStations = new Set();
+
   const lineUpdate = entities.reduce((lineData, entity) => {
     const { trip_update: update, vehicle } = entity;
     if (vehicle) {
@@ -103,7 +107,7 @@ trip.parseUpdateForLine = (entities, line, stations) => {
       }
     }
     else if (update) {
-      const response = trip.parseTripUpdate(update, line, stations);
+      const response = trip.parseTripUpdate(update, line, stations, missingStations);
       if (response) {
         const { data, tripId, lastUpdated } = response;
         lineData[tripId] = Object.assign({}, lineData[tripId] || {}, { lastUpdated, stops: data });
@@ -111,6 +115,10 @@ trip.parseUpdateForLine = (entities, line, stations) => {
     }
     return lineData;
   }, {});
+
+  if (missingStations.size) {
+    config.debug('Missing', missingStations.size, 'stations for line', line, [...missingStations].toString()); 
+  }
 
   return lineUpdate;
 };

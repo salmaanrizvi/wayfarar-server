@@ -9,6 +9,7 @@
     "express": "^4.16.2",
     "gtfs-realtime-bindings": "^0.0.4",
     "moment": "^2.19.1",
+    "moment-timezone": "^0.5.14",
     "mongodb": "^2.2.33",
     "mongoose": "^4.13.5",
     "mongoose-geojson-schema": "^2.1.2",

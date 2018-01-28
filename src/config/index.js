@@ -5,8 +5,8 @@ const colors = require('colors');
 const dateFormat = 'MMM Do, k:mm:ss'
 
 const config = {
-  DEV: 'development',
-  PROD: 'production'
+  DEV: 'Development',
+  PROD: 'Production'
 };
 
 config.env = process.env.NODE_ENV || config.DEV;
@@ -14,7 +14,7 @@ config.port = process.env.PORT || 8888;
 
 config.req = (options) => (method = 'GET', params) => {
   options.qs = Object.assign({}, options.qs || {}, params);
-  return rp(options).catch(error => console.error('Error in request', error));
+  return rp(options).catch(error => config.error('Error in request', error));
 }
 
 config.mta = {
@@ -39,13 +39,14 @@ config.db = {
 };
 
 config.debug = (...args) => {
-  if (config.env === config.DEV) {
-    const now = moment().format(dateFormat);
-    console.log(`[${ now }]`.red, ...args);
-  }
+  const now = moment().format(dateFormat);
+  console.log(`[${ now } - ${ config.env }]`.green, ...args);
 };
 
-config.error = (...args) => console.error(...args);
+config.error = (...args) => {
+  const now = moment().format(dateFormat);
+  console.log(`[${ now } - ${ config.env }]`.red, ...args);
+};
 
 config.profiles = {};
 
@@ -55,18 +56,13 @@ config.profile = id => {
     config.debug(id, 'in', time, 'ms');
     delete config.profiles[id];
   }
-  else {
-    config.profiles[id] = moment();
-  }
-}
+  else config.profiles[id] = moment();
+};
 
 config.saveDb = db => {
   config.profile('mongodb');
   config.db.stations = db.collections.stations;
   config.db.trains = db.collections.trains;
-
-  // return createTextIndexes(config.db.trains)
-    // .then(() => create2dSphereIndex(config.db.stations));
 };
 
 config.connect = () => {

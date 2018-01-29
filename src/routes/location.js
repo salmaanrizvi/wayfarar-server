@@ -29,7 +29,7 @@ const getLocation = (req, res) => {
 
   const data = { stations: [], trains: [] };
 
-  Station.findNear({ coordinates, maxDistance })
+  Station.findNear({ coordinates, maxDistance, limit: 5 })
     .then(stations => {
       data.stations = stations;
       const train_ids = stations.reduce((ids, station) => ids.concat(station.trains.N, station.trains.S), []);

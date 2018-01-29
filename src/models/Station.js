@@ -48,7 +48,7 @@ StationSchema.statics.saveAll = function(stations) {
   });
 };
 
-StationSchema.statics.findNear = function({ coordinates, maxDistance }) {
+StationSchema.statics.findNear = function({ coordinates, maxDistance, limit }) {
   return new Promise((resolve, reject) => {
     const near = {
       'location.coordinates': { 
@@ -62,12 +62,11 @@ StationSchema.statics.findNear = function({ coordinates, maxDistance }) {
       }
     };
 
-    config.db.stations.find(near).toArray((err, stations) => {
+    config.db.stations.find(near).limit(limit).toArray((err, stations) => {
       if (err) {
         config.error('Error', err);
         return reject(err);
       }
-      config.debug("Found the following records", stations.length);
       return resolve(stations);
     });
   });

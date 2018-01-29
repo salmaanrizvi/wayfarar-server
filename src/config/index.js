@@ -5,8 +5,8 @@ const colors = require('colors');
 const dateFormat = 'MMM Do, k:mm:ss'
 
 const config = {
-  DEV: 'Development',
-  PROD: 'Production'
+  DEV: 'development',
+  PROD: 'production'
 };
 
 config.env = process.env.NODE_ENV || config.DEV;

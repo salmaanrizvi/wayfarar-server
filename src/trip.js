@@ -1,8 +1,8 @@
-const config = require(__basedir + '/config');
 const moment = require('moment-timezone');
-const { VehicleStopStatus, dateFormat, timezone } = require(__basedir + '/utils.js');
 const GtfsRealtimeBindings = require('gtfs-realtime-bindings');
-const { urls } = require(__basedir + '/utils.js');
+
+const config = require(__basedir + '/config');
+const { VehicleStopStatus, dateFormat, timezone, urls } = require(__basedir + '/utils.js');
 const { Train } = require(__basedir + '/models');
 
 const trip = {};

@@ -32,12 +32,18 @@ const getLocation = (req, res) => {
   Station.findNear({ coordinates, maxDistance, limit: 5 })
     .then(stations => {
       data.stations = stations;
-      const train_ids = stations.reduce((ids, station) => ids.concat(station.trains.N, station.trains.S), []);
+      let train_ids = stations.reduce((ids, station) => {
+        const northbound = station.trains.N.slice(0, 2);
+        const southbound = station.trains.S.slice(0, 2);
+        ids.concat(northbound, southbound);
+      }, []);
 
+      train_ids = [...new Set(train_ids)];
       return Train.find({ train_id: { $in: train_ids }}).sort('-lastUpdated direction').exec();
     })
     .then(trains => {
       data.trains = trains;
+      config.debug('returning', data.stations.length, 'stations and', data.trains.length, 'trains');
       return res.set({ 'Content-Type': 'application/json; charset=utf-8' }).status(200).send(JSON.stringify(data, null, 2));
     })
     .catch(err => {

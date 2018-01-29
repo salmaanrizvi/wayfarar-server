@@ -19,7 +19,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "forever": "forever start ./forever-config.json"
+    "forever-dev": "forever start ./forever-config.json",
+    "forever": "NODE_ENV=production forever start ./forever-config.json"
   },
   "author": "Salmaan Rizvi",
   "license": "ISC"

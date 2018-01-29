@@ -1,8 +1,8 @@
 const rp = require('request-promise');
 const mongoose = require('mongoose');
-const moment = require('moment');
+const moment = require('moment-timezone');
 const colors = require('colors');
-const dateFormat = 'MMM Do, k:mm:ss'
+const utils = require(__basedir + '/utils.js');
 
 const config = {
   DEV: 'development',
@@ -39,12 +39,12 @@ config.db = {
 };
 
 config.debug = (...args) => {
-  const now = moment().format(dateFormat);
+  const now = moment.tz(utils.timezone).format(utils.logDateFormat);
   console.log(`[${ now } - ${ config.env }]`.green, ...args);
 };
 
 config.error = (...args) => {
-  const now = moment().format(dateFormat);
+  const now = moment.tz(utils.timezone).format(utils.logDateFormat);
   console.log(`[${ now } - ${ config.env }]`.red, ...args);
 };
 

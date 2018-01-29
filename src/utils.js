@@ -1,6 +1,8 @@
 const utils = {};
 
+utils.logDateFormat = 'MMM Do, k:mm:ss';
 utils.dateFormat = 'dddd, MMMM Do YYYY, h:mm:ss a';
+utils.timezone = 'America/New_York';
 
 utils.urls = {
   a: '26', c: '26', e: '26',

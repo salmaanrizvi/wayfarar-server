@@ -6,11 +6,16 @@ const utils = require(__basedir + '/utils.js');
 
 const config = {
   DEV: 'development',
-  PROD: 'production'
+  PROD: 'production',
+  nodeTypes: {
+    SERVER: 'server',
+    WORKER: 'worker'
+  }
 };
 
 config.env = process.env.NODE_ENV || config.DEV;
 config.port = process.env.PORT || 8888;
+config.nodeType = process.env.NODE_TYPE || config.nodeTypes.SERVER;
 
 config.req = (options) => (method = 'GET', params) => {
   options.qs = Object.assign({}, options.qs || {}, params);
@@ -40,12 +45,12 @@ config.db = {
 
 config.debug = (...args) => {
   const now = moment.tz(utils.timezone).format(utils.logDateFormat);
-  console.log(`[${ now } - ${ config.env }]`.green, ...args);
+  console.log(`[${ now } - ${ config.env } - ${ config.nodeType }]`.green, ...args);
 };
 
 config.error = (...args) => {
   const now = moment.tz(utils.timezone).format(utils.logDateFormat);
-  console.log(`[${ now } - ${ config.env }]`.red, ...args);
+  console.log(`[${ now } - ${ config.env } - ${ config.nodeType }]`.red, ...args);
 };
 
 config.profiles = {};
@@ -66,6 +71,7 @@ config.saveDb = db => {
 };
 
 config.connect = () => {
+  config.debug('Lifting ART -', config.nodeType);
   if (config.env === config.DEV) mongoose.set('debug', true);
   config.profile('mongodb');
   return mongoose.connect(config.db.url, { useMongoClient: true })

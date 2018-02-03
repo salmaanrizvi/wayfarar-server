@@ -4,7 +4,8 @@ const { Train } = require(__basedir + '/models');
 
 const ERRORS = {
   lineRequired: 'Line is required.',
-  internalServer: 'Internal server error.'
+  internalServer: 'Internal server error.',
+  unsupported: 'Endpoint is not supported'
 };
 
 const getLines = (req, res) => {
@@ -26,7 +27,7 @@ const getLines = (req, res) => {
 const getRawLines = (req, res) => {
   const line = req.query.line;
   if (!line) return res.status(404).send(ERRORS.lineRequired);
-
+  return res.status(404).send(ERRORS.unsupported);
   // load(line, false, (err, feed) => {
   //   if (err) {
   //     config.debug('error loading the line', err);

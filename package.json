@@ -19,8 +19,9 @@
   },
   "devDependencies": {},
   "scripts": {
-    "forever-dev": "forever start ./forever-config.json",
-    "forever": "NODE_ENV=production forever start ./forever-config.json"
+    "forever-dev": "NODE_ENV=development NODE_TYPE=server forever start ./forever-config.json",
+    "forever-server": "NODE_ENV=production NODE_TYPE=server forever start ./forever-config.json",
+    "forever-worker": "NODE_ENV=production NODE_TYPE=worker forever start ./forever-config.json"
   },
   "author": "Salmaan Rizvi",
   "license": "ISC"

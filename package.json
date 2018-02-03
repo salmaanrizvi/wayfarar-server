@@ -21,8 +21,8 @@
   "scripts": {
     "dev-server": "NODE_ENV=development NODE_TYPE=server node src/index.js",
     "dev-worker": "NODE_ENV=development NODE_TYPE=worker node src/index.js",
-    "forever-server": "NODE_ENV=production NODE_TYPE=server forever start -l WayfarAR-server.log -a -w --uid \"WayfarAR-Server\" --sourceDir /home/Rizvi/wayfarar-server src/index.js",
-    "forever-worker": "NODE_ENV=production NODE_TYPE=worker forever start -l WayfarAR-worker.log -a -w --uid \"WayfarAR-Worker\" --sourceDir /home/Rizvi/wayfarar-server src/index.js"
+    "forever-server": "NODE_ENV=production NODE_TYPE=server forever start -l WayfarAR-server.log -a -w --uid \"WayfarAR-Server\" src/index.js",
+    "forever-worker": "NODE_ENV=production NODE_TYPE=worker forever start -l WayfarAR-worker.log -a -w --uid \"WayfarAR-Worker\" src/index.js"
   },
   "author": "Salmaan Rizvi",
   "license": "ISC"

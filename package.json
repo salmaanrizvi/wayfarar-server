@@ -19,9 +19,10 @@
   },
   "devDependencies": {},
   "scripts": {
-    "forever-dev": "NODE_ENV=development NODE_TYPE=server forever start ./forever-config.json",
-    "forever-server": "NODE_ENV=production NODE_TYPE=server forever start ./forever-config.json",
-    "forever-worker": "NODE_ENV=production NODE_TYPE=worker forever start ./forever-config.json"
+    "dev-server": "NODE_ENV=development NODE_TYPE=server node src/index.js",
+    "dev-worker": "NODE_ENV=development NODE_TYPE=worker node src/index.js",
+    "forever-server": "NODE_ENV=production NODE_TYPE=server forever start --uid \"server\" -l WayfarAR-server.log ./forever-config.json",
+    "forever-worker": "NODE_ENV=production NODE_TYPE=worker forever start --uid \"worker\" -l WayfarAR-worker.log ./forever-config.json"
   },
   "author": "Salmaan Rizvi",
   "license": "ISC"

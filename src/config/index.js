@@ -14,8 +14,11 @@ const config = {
 };
 
 config.env = process.env.NODE_ENV || config.DEV;
-config.port = process.env.PORT || 8888;
-config.nodeType = process.env.NODE_TYPE || config.nodeTypes.SERVER;
+config.port = process.env.PORT || 8000;
+config.nodeType = process.env.NODE_TYPE ? process.env.NODE_TYPE.split(',') : [config.nodeTypes.SERVER];
+
+config.isServer = config.nodeType.indexOf(config.nodeTypes.SERVER) > -1;
+config.isWorker = config.nodeType.indexOf(config.nodeTypes.WORKER) > -1;
 
 config.req = (options) => (method = 'GET', params) => {
   options.qs = Object.assign({}, options.qs || {}, params);
@@ -71,7 +74,7 @@ config.saveDb = db => {
 };
 
 config.connect = () => {
-  config.debug('Lifting ART -', config.nodeType);
+  config.debug('Lifting ART in ', config.env, ' mode. Node types:', config.nodeType);
   if (config.env === config.DEV) mongoose.set('debug', true);
   config.profile('mongodb');
   return mongoose.connect(config.db.url, { useMongoClient: true })

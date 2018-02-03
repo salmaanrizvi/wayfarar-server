@@ -21,7 +21,7 @@ app.get('/api/lines/raw', Routes.lines.getRawLines);
 app.get('/api/lines', Routes.lines.getLines);
 
 const loadStations = () => new Promise((resolve, reject) => {
-  if (config.nodeType !== config.nodeTypes.SERVER)
+  if (!config.isWorker) return resolve();
   config.profile('loaded stations');
   config.db.stations.find({}).toArray((err, stationArr) => {
     if (err) {
@@ -36,7 +36,7 @@ const loadStations = () => new Promise((resolve, reject) => {
 });
 
 const startServer = () => new Promise(resolve => {
-  if (config.nodeType !== config.nodeTypes.SERVER) return resolve();
+  if (!config.isServer) return resolve();
   config.profile('lifted server');
   app.listen(config.port, () => {
     config.profile('lifted server');
@@ -71,7 +71,7 @@ const pollTrains = () => {
 };
 
 const beginPolling = () => {
-  if (config.nodeType !== config.nodeTypes.WORKER) return Promise.resolve();
+  if (!config.isWorker) return Promise.resolve();
   return Train.removeOldTrains().then(() => {
     pollTrains();
     setInterval(pollTrains, 60000); // every minute

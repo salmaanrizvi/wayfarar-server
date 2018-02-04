@@ -28,6 +28,7 @@ utils.VehicleStopStatus = {
   2: 'IN_TRANSIT_TO'
 };
 
+utils.minsToSeconds = mins => 60 * mins;
 utils.hoursToSeconds = hrs => 60 * 60 * hrs;
 utils.hoursToMs = hrs => 60 * 60 * hrs * 1000;
 

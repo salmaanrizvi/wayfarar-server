@@ -29,8 +29,8 @@ const loadStations = () => new Promise((resolve, reject) => {
       return reject(err);
     }
 
-    config.profile('loaded stations');
     stations = Utils.cleanStationData(stationArr);
+    config.profile('loaded stations');
     return resolve();
   });
 });
@@ -48,25 +48,28 @@ const startServer = () => new Promise(resolve => {
 const pollTrains = () => {
   trains = {};
 
-  const lineTask = line => asyncLib.reflect(cb => Trip.load({ line, trains, stations }, cb));
-  const pollingTasks = Object.keys(Utils.urls).map(line => lineTask(line));
-
   config.profile('polling');
-  asyncLib.parallel(pollingTasks, (err, results) => {
-    const records = [];
 
-    Object.keys(trains).forEach(line => {
-      Object.keys(trains[line]).forEach(train_id => records.push(trains[line][train_id]))
+  return loadStations().then(() => {
+    const lineTask = line => asyncLib.reflect(cb => Trip.load({ line, trains, stations }, cb));
+    const pollingTasks = Object.keys(Utils.urls).map(line => lineTask(line));
+
+    asyncLib.parallel(pollingTasks, (err, results) => {
+      const records = [];
+
+      Object.keys(trains).forEach(line => {
+        Object.keys(trains[line]).forEach(train_id => records.push(trains[line][train_id]))
+      });
+
+      return Train.bulkSave(records, 'train_id')
+        .then(response => {
+          const { ok, nInserted, nUpserted, nMatched, nModified, nRemoved } = response;
+          config.debug('Lines save - ok', ok, 'nInserted', nInserted, 'nUpserted', nUpserted, 'nMatched', nMatched, 'nModified', nModified,'nRemoved', nRemoved);
+          return Station.saveAll(stations)
+        })
+        .then(() => config.profile('polling'))
+        .catch(e => config.error('Error in saving trains or stations', e));
     });
-
-    return Train.bulkSave(records, 'train_id')
-      .then(response => {
-        const { ok, nInserted, nUpserted, nMatched, nModified, nRemoved } = response;
-        config.debug('Lines save - ok', ok, 'nInserted', nInserted, 'nUpserted', nUpserted, 'nMatched', nMatched, 'nModified', nModified,'nRemoved', nRemoved);
-        return Station.saveAll(stations)
-      })
-      .then(() => config.profile('polling'))
-      .catch(e => config.error('Error in saving trains or stations', e));
   });
 };
 

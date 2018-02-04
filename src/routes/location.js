@@ -1,4 +1,4 @@
-const moment = require('moment');
+const moment = require('moment-timezone');
 const asyncLib = require('async');
 
 const config = require(__basedir + '/config');
@@ -36,60 +36,34 @@ const getLocation = (req, res) => {
 
   Station.findNear({ coordinates, maxDistance, limit: 5 })
     .then(stations => {
-      // return new Promise(resolve => {
-        data.stations = stations;
-        config.debug('returned', stations.length);
+      data.stations = stations;
+      config.debug('returned', stations.length);
 
-        const now = moment().unix();
-        const twentyMins = now + minsToSeconds(20);
+      const now = moment().unix();
+      const twentyMins = now + minsToSeconds(20);
 
-        stations.forEach(station => {
-        //   const query = (stopId) => {
-        //     return (cb) => {
-        //       Train.find({
-        //         stops: {
-        //           $elemMatch: {
-        //             station_id: stopId,
-        //             arrivalTime: { $lt: twentyMins, $gt: now },
-        //           }
-        //         }
-        //       }, { fields: }).exec(cb);
-        //     };
-        //   };
+      stations.forEach(station => (stopIds.push(station.stop_id + 'N', station.stop_id + 'S')));
 
-          // stopIds.push(query(station.stop_id + 'N'), query(station.stop_id + 'S'));
-          stopIds.push(station.stop_id + 'N', station.stop_id + 'S');
-        });
-
-        // asyncLib.parallel(stopIds, (err, response) => {
-        //   config.debug('finished parallel', err);
-        //   config.debug(response);
-        //   return resolve(response);
-        // });
-
-        const query = {
-          stops: {
-            $elemMatch: {
-              station_id: { $in: stopIds },
-              arrivalTime: { $lt: twentyMins, $gt: now },
-            }
+      const query = {
+        stops: {
+          $elemMatch: {
+            station_id: { $in: stopIds },
+            arrivalTime: { $lt: twentyMins, $gt: now },
           }
-        };
+        }
+      };
 
-        return Train.find(query).sort('-lastUpdated direction').exec();
-      // });
+      return Train.find(query).sort('-lastUpdated direction').exec();
     })
     .then(trains => {
-      data.trains = trains;
+      const directions = { N: [], S: [] };
+
       trains.forEach(train => {
-        train.stops.forEach(stop => {
-          if (stopIds.indexOf(stop.station_id) > -1) {
-            const time = moment.unix(stop.arrivalTime).format(logDateFormat);
-            config.debug(train.direction, 'bound train arriving to', stop.station_name, 'at', time);
-          }
-        })
+        train.stops = train.stops.filter(stop => stopIds.indexOf(stop.station_id) > -1);
+        directions[train.direction].push(train);
       });
-      // config.debug('returning', data.stations.length, 'stations and', data.trains.length, 'trains');
+
+      data.trains = directions;
       return res.set({ 'Content-Type': 'application/json; charset=utf-8' }).status(200).send(JSON.stringify(data, null, 2));
     })
     .catch(err => {

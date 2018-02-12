@@ -24,6 +24,7 @@ const getLocation = (req, res) => {
    return res.status(400).send(ERRORS.invalidLatLong);
   }
 
+  const now = moment().unix();
   maxDistance = parseFloat(maxDistance);
   maxDistance = !isNaN(maxDistance) ? maxDistance : 1609; // default is 1.0 miles;
 
@@ -39,18 +40,15 @@ const getLocation = (req, res) => {
       data.stations = stations;
       config.debug('returned', stations.length);
 
-      const now = moment().unix();
       const twentyMins = now + minsToSeconds(20);
+      const twoMinutesAgo = now - minsToSeconds(2);
 
       stations.forEach(station => (stopIds.push(station.stop_id + 'N', station.stop_id + 'S')));
 
       const query = {
-        stops: {
-          $elemMatch: {
-            station_id: { $in: stopIds },
-            arrivalTime: { $lt: twentyMins, $gt: now },
-          }
-        }
+        $and: [{ stops: { $elemMatch: { station_id: { $in: stopIds } } } },
+          { stops: { $elemMatch: { arrivalTime: { $lt: twentyMins, $gt: now } } } },
+          { lastUpdated: { $gt: twoMinutesAgo } }]
       };
 
       return Train.find(query).sort('-lastUpdated direction').exec();
@@ -59,7 +57,7 @@ const getLocation = (req, res) => {
       const directions = { N: [], S: [] };
 
       trains.forEach(train => {
-        train.stops = train.stops.filter(stop => stopIds.indexOf(stop.station_id) > -1);
+        // train.stops = train.stops.filter(stop => stopIds.indexOf(stop.station_id) > -1);
         directions[train.direction].push(train);
       });
 

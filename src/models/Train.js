@@ -1,5 +1,5 @@
 const config = require(__basedir + '/config');
-const { hoursToSeconds } = require(__basedir + '/utils.js');
+const { minsToSeconds } = require(__basedir + '/utils.js');
 const moment = require('moment');
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
@@ -13,21 +13,21 @@ const TrainSchema = new Schema({
   stops: [{
     station_id: String,
     station_name: String,
-    arrivalTime: Number,
-    arrives: Number
+    arrivalTime: Number
   }],
   current_status: String,
   timestamp: String,
   direction: String,
   route: String,
+  towards: String,
   lastUpdated: Number,
 },
 { timestamps: true });
 
 const removeOldTrains = function() {
   return new Promise((resolve, reject) => {
-    const fourHoursAgo = moment().unix() - hoursToSeconds(4);
-    config.db.trains.remove({ lastUpdated: { $lt: fourHoursAgo }}, (err, response) => {
+    const oneHourAgo = moment().unix() - minsToSeconds(60);
+    config.db.trains.remove({ lastUpdated: { $lt: oneHourAgo }}, (err, response) => {
       if (err) {
         config.error('Error removing old trains', err);
         return reject(err);

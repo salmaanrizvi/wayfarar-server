@@ -77,7 +77,7 @@ const beginPolling = () => {
   if (!config.isWorker) return Promise.resolve();
   return Train.removeOldTrains().then(() => {
     pollTrains();
-    setInterval(pollTrains, 60000); // every minute
+    setInterval(pollTrains, 30000); // every 30 seconds
     setInterval(Train.removeOldTrains, Utils.hoursToMs(2));
   });
 };

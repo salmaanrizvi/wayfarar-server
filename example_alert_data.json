@@ -1,0 +1,62 @@
+{
+  "id": "000129",
+  "is_deleted": false,
+  "trip_update": null,
+  "vehicle": null,
+  "alert": {
+    "active_period": [],
+    "informed_entity": [{
+        "agency_id": null,
+        "route_id": null,
+        "route_type": null,
+        "trip": {
+          "trip_id": "147900_1..N",
+          "route_id": "1",
+          "direction_id": null,
+          "start_time": null,
+          "start_date": null,
+          "schedule_relationship": null
+        },
+        "stop_id": null
+      },
+      {
+        "agency_id": null,
+        "route_id": null,
+        "route_type": null,
+        "trip": {
+          "trip_id": "146600_2..N",
+          "route_id": "2",
+          "direction_id": null,
+          "start_time": null,
+          "start_date": null,
+          "schedule_relationship": null
+        },
+        "stop_id": null
+      },
+      {
+        "agency_id": null,
+        "route_id": null,
+        "route_type": null,
+        "trip": {
+          "trip_id": "000400_4..S13R",
+          "route_id": "4",
+          "direction_id": null,
+          "start_time": null,
+          "start_date": null,
+          "schedule_relationship": null
+        },
+        "stop_id": null
+      }
+    ],
+    "cause": 1,
+    "effect": 8,
+    "url": null,
+    "header_text": {
+      "translation": [{
+        "text": "Train delayed",
+        "language": null
+      }]
+    },
+    "description_text": null
+  }
+}

@@ -20,6 +20,11 @@ const TrainSchema = new Schema({
   direction: String,
   route: String,
   towards: String,
+  alerts: [{
+    cause: String,
+    effect: String,
+    text: String
+  }],
   lastUpdated: Number,
 },
 { timestamps: true });

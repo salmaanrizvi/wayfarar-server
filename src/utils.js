@@ -1,5 +1,8 @@
 const utils = {};
 
+const Sendgrid = require('@sendgrid/mail');
+Sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+
 utils.logDateFormat = 'MMM Do, k:mm:ss';
 utils.dateFormat = 'dddd, MMMM Do YYYY, h:mm:ss a';
 utils.timezone = 'America/New_York';
@@ -74,6 +77,19 @@ utils.cleanStationData = stations => {
     const cleanStation = Object.assign({}, station, emptyTrains);
     return Object.assign(data, { [station.stop_id]: cleanStation });
   }, {});
+};
+
+utils.notify = (subject, message, error)  => {
+  // using SendGrid's v3 Node.js Library
+  // https://github.com/sendgrid/sendgrid-nodejs
+  const text = (error && error.stack) || message;
+  const msg = {
+    to: [{ email: 'sar228@cornell.edu'}],
+    from: 'sar228@cornell.edu',
+    subject,
+    text: `${ text }`
+  };
+  return Sendgrid.send(msg);
 };
 
 module.exports = utils;

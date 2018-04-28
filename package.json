@@ -4,6 +4,7 @@
   "description": "Wayfarer server, parsing and serving real-time MTA transit data",
   "main": "index.js",
   "dependencies": {
+    "@sendgrid/mail": "^6.2.1",
     "async": "^2.6.0",
     "colors": "^1.1.2",
     "express": "^4.16.2",

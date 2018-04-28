@@ -129,7 +129,7 @@ trip.parseUpdateForLine = (entities, line, stations) => {
       let causeText = AlertCause[cause] || AlertCause[0];
       let effectText = AlertEffect[effect] || AlertEffect[8];
       const { translation: [description = {}] = [] } = header_text;
-      const text = description.text || 'Delayed';
+      const text = description.text || 'Delayed (default)';
 
       informed_entity.forEach(entity => {
         const {
@@ -143,8 +143,10 @@ trip.parseUpdateForLine = (entities, line, stations) => {
           config.debug('Found alert for trip in line data', tripId);
           const tripData = lineData[tripId];
           const alerts = tripData.alerts || [];
-          alerts.push({ cause, effect, text });
+          const alert = { cause, effect, text };
+          alerts.push(alert);
           tripData.alerts = alerts;
+          Utils.notify('Trip Alert', tripData);
         }
       });
     }

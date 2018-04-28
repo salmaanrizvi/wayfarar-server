@@ -13,6 +13,11 @@ const { Train, Station } = require(__basedir + '/models');
 let stations = {};
 let trains = {};
 
+process.on('uncaughtException', error => {
+  Utils.notify('[Restart] - Unhandled Exception', null, error)
+    .then(() => process.exit(1));
+});
+
 app.get('/favicon.ico', (req, res) => res.status(204));
 // api/location?long=(required)&lat(required)=&maxDistance=(optional)
 app.get('/api/location', Routes.location.getLocation);

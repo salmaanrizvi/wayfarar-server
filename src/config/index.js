@@ -4,6 +4,10 @@ const moment = require('moment-timezone');
 const colors = require('colors');
 const utils = require(__basedir + '/utils.js');
 
+const Sendgrid = require('@sendgrid/mail');
+console.log('loading config module', process.env.SENDGRID_API_KEY);
+Sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
+
 const config = {
   DEV: 'development',
   PROD: 'production',
@@ -79,6 +83,21 @@ config.connect = () => {
   config.profile('mongodb');
   return mongoose.connect(config.db.url, { useMongoClient: true })
     .then(config.saveDb);
+};
+
+config.notify = (subject, message, error)  => {
+  // using SendGrid's v3 Node.js Library
+  // https://github.com/sendgrid/sendgrid-nodejs
+  const text = (error && error.stack) || message;
+  const msg = {
+    to: [{ email: 'sar228@cornell.edu'}],
+    from: 'sar228@cornell.edu',
+    subject: `[ART - ${ config.nodeType }] - ${ subject }`,
+    text: `${ text }`
+  };
+  config.debug('Notifying.....', msg.subject, msg.text);
+  return Sendgrid.send(msg).then(resp => config.debug(resp[0].statusCode,
+    resp[0].statusMessage));
 };
 
 module.exports = config;

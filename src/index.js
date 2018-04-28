@@ -14,7 +14,7 @@ let stations = {};
 let trains = {};
 
 process.on('uncaughtException', error => {
-  Utils.notify('Restart - Unhandled Exception', null, error)
+  config.notify('Restart - Unhandled Exception', null, error)
     .then(() => process.exit(1));
 });
 
@@ -91,4 +91,5 @@ config.connect()
   .then(loadStations)
   .then(startServer)
   .then(beginPolling)
+  .then(() => config.notify('Lifted', `Successfully lifted ${ config.nodeType }`))
   .catch(config.error);

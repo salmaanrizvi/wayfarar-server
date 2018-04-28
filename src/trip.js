@@ -154,7 +154,7 @@ trip.parseUpdateForLine = (entities, line, stations) => {
     return lineData;
   }, {});
 
-  if (missingStations.size) {
+  if (missingStations.size && config.env === config.DEV) {
     config.debug('Missing', missingStations.size, 'stations for line', line, [...missingStations].toString()); 
   }
 
@@ -173,7 +173,7 @@ trip.load = ({ line, stations, trains, parse = true }, cb) => {
       let feed;
       try { feed = GtfsRealtimeBindings.FeedMessage.decode(body); }
       catch (e) {
-        config.error('Error parsing MTA feed for line', line, e);
+        config.error('Error parsing MTA feed for line', line);
         return cb({ e, line });
       }
 

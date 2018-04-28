@@ -14,7 +14,7 @@ let stations = {};
 let trains = {};
 
 process.on('uncaughtException', error => {
-  Utils.notify('[Restart] - Unhandled Exception', null, error)
+  Utils.notify('Restart - Unhandled Exception', null, error)
     .then(() => process.exit(1));
 });
 

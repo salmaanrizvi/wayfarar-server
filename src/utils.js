@@ -86,7 +86,7 @@ utils.notify = (subject, message, error)  => {
   const msg = {
     to: [{ email: 'sar228@cornell.edu'}],
     from: 'sar228@cornell.edu',
-    subject,
+    subject: `[ART] - ${ subject }`,
     text: `${ text }`
   };
   return Sendgrid.send(msg);

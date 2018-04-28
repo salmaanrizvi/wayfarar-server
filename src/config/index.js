@@ -95,7 +95,7 @@ config.notify = (subject, message, error)  => {
     subject: `[ART - ${ config.nodeType }] - ${ subject }`,
     text: `${ text }`
   };
-  config.debug('Notifying.....', msg.subject, msg.text);
+  config.debug('Notifying: ', msg.subject, msg.text);
   return Sendgrid.send(msg).then(resp => config.debug(resp[0].statusCode,
     resp[0].statusMessage));
 };

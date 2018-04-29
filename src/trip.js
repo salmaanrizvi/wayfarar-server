@@ -146,7 +146,6 @@ trip.parseUpdateForLine = (entities, line, stations) => {
           const alert = { cause, effect, text };
           alerts.push(alert);
           tripData.alerts = alerts;
-          config.notify('Trip Alert', JSON.stringify(tripData, null, 2));
         }
       });
     }

@@ -58,4 +58,4 @@ typings/
 .env
 sendgrid.env
 .DS_Store
-
+sftp-config.json
